@@ -44,7 +44,10 @@ explicit = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-markers = ["slow: slow tests (model download / containers)"]
+markers = [
+    "slow: slow tests (model download)",
+    "db: needs a Docker Timescale container",
+]
 
 [tool.ruff]
 line-length = 100

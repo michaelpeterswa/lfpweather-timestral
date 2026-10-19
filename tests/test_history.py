@@ -16,7 +16,7 @@ def test_hour_grid_is_utc_and_consecutive_across_dst():
     assert all(b - a == timedelta(hours=1) for a, b in itertools.pairwise(grid))
 
 
-@pytest.mark.slow
+@pytest.mark.db
 def test_load_history_aligns_and_fills_nan(db_conn):
     issued = datetime(2026, 11, 1, 12, tzinfo=UTC)
     # readings around hours -4, -3, -1 (hours -2 and 0 missing); centered window
