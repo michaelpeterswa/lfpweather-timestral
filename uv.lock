@@ -378,6 +378,7 @@ source = { editable = "." }
 dependencies = [
     { name = "apscheduler" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "prometheus-client" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic-settings" },
@@ -400,6 +401,7 @@ dev = [
 requires-dist = [
     { name = "apscheduler", specifier = "<4" },
     { name = "fastapi", specifier = ">=0.149.0" },
+    { name = "httpx" },
     { name = "prometheus-client" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.6" },
     { name = "pydantic-settings" },
