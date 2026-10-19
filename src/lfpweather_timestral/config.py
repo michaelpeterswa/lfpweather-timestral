@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,3 +16,10 @@ class Settings(BaseSettings):
     metrics_port: int = 8081
     log_level: str = "info"
     api_key: str | None = None
+
+    @field_validator("api_key", mode="before")
+    @classmethod
+    def _blank_api_key_is_unset(cls, v):
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v

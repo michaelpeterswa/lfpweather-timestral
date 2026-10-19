@@ -88,3 +88,9 @@ def test_api_key_required_when_configured():
 def test_api_open_when_key_unset():
     c = TestClient(create_api(FakeModel()))
     assert c.post("/forecast", json=_body()).status_code == 200
+
+
+def test_empty_api_key_header_rejected_when_configured():
+    c = TestClient(create_api(FakeModel(), api_key="s3cret"))
+    assert c.post("/forecast", json=_body(), headers={"X-API-Key": ""}).status_code == 401
+

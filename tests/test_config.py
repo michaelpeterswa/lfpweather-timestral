@@ -17,3 +17,11 @@ def test_api_key_optional(monkeypatch):
     assert Settings().api_key is None
     monkeypatch.setenv("API_KEY", "k")
     assert Settings().api_key == "k"
+
+
+def test_empty_api_key_is_unset(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@h/db")
+    monkeypatch.setenv("NWS_USER_AGENT", "test (a@b.c)")
+    for raw in ("", "   "):
+        monkeypatch.setenv("API_KEY", raw)
+        assert Settings().api_key is None
