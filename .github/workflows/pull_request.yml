@@ -1,66 +1,83 @@
 ---
 on: [pull_request] #  yamllint disable-line rule:truthy
 name: main
+permissions: {}
 jobs:
   commitlint:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: lts/*
       - run: npm install --save-dev @commitlint/{config-conventional,cli}
       - run: npx commitlint --from=${{ github.event.pull_request.base.sha }}
 
   lint:
+    permissions:
+      contents: read
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
 
-      - name: Sync
-        run: uv sync --frozen
-
+      # ruff needs only the source; skip syncing torch (pin matches uv.lock)
       - name: ruff
-        run: uv run ruff check
+        run: uvx ruff@0.17.1 check
 
   yamllint:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: yaml-lint
         uses: ibiqlik/action-yamllint@v3
 
   hadolint:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      - uses: hadolint/hadolint-action@v2.0.0
+      - uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile
 
   test:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
 
       - name: Sync
         run: uv sync --frozen

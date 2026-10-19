@@ -3,7 +3,8 @@ FROM ghcr.io/astral-sh/uv:0.9.5 AS uv
 
 FROM python:3.12-slim-bookworm AS build
 COPY --from=uv /uv /usr/local/bin/uv
-# git is needed for the timestral git dependency
+# git is needed for the timestral git dependency; apt pins are not stable on a rolling base
+# hadolint ignore=DL3008
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
