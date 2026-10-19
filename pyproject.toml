@@ -9,6 +9,7 @@ dependencies = [
     "torch",
     "pydantic-settings",
     "prometheus-client",
+    "psycopg[binary]>=3.3.6",
 ]
 
 [dependency-groups]
