@@ -157,3 +157,25 @@ async def test_covariate_coverage_recorded(db_conn, settings):
         " WHERE source = 'timestral_nws'"
     ).fetchall()
     assert len(cov) == 1 and cov[0][0] == pytest.approx(0.5)
+
+
+def _hist_count():
+    return next(
+        s.value
+        for m in metrics.FORECAST_SECONDS.collect()
+        for s in m.samples
+        if s.name.endswith("_count")
+    )
+
+
+@respx.mock
+async def test_run_does_not_observe_forecast_seconds(db_conn, settings):
+    # Model.forecast times itself; run_once must not double-count.
+    _readings(db_conn)
+    respx.get(URL).respond(200, json=_nws_body())
+    before = _hist_count()
+    model = FakeModel()
+    async with httpx.AsyncClient() as http:
+        await run_once(NOW, conn=db_conn, http=http, model=model, settings=settings)
+    assert len(model.calls) == 2
+    assert _hist_count() == before

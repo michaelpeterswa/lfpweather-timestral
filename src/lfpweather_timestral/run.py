@@ -86,8 +86,7 @@ async def run_once(
 
     if history is not None:
         try:
-            with metrics.FORECAST_SECONDS.time():
-                q = model.forecast(history, HORIZON)
+            q = model.forecast(history, HORIZON)
             forecasts.append(
                 SourceForecast("timestral", q.median, q.quantiles, None, settings.model_id)
             )
@@ -99,10 +98,9 @@ async def run_once(
                 grid = hour_grid(issued_at, settings.history_days * 24)
                 past = load_nws_covariate_past(conn, grid)
                 coverage = float(np.mean(~np.isnan(past)))
-                with metrics.FORECAST_SECONDS.time():
-                    q = model.forecast(
-                        history, HORIZON, covariate_past=past, covariate_future=nws_values
-                    )
+                q = model.forecast(
+                    history, HORIZON, covariate_past=past, covariate_future=nws_values
+                )
                 forecasts.append(
                     SourceForecast(
                         "timestral_nws", q.median, q.quantiles, coverage, settings.model_id
