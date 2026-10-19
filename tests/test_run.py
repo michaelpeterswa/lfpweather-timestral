@@ -179,3 +179,44 @@ async def test_run_does_not_observe_forecast_seconds(db_conn, settings):
         await run_once(NOW, conn=db_conn, http=http, model=model, settings=settings)
     assert len(model.calls) == 2
     assert _hist_count() == before
+
+
+class NanOnCovariateModel(FakeModel):
+    """Finite plain forecast, NaN when covariates are supplied."""
+
+    def forecast(self, history, horizon, covariate_past=None, covariate_future=None):
+        qf = super().forecast(history, horizon, covariate_past, covariate_future)
+        if covariate_future is not None:
+            qf.median[:] = np.nan
+        return qf
+
+
+class NanModel(FakeModel):
+    def forecast(self, history, horizon, covariate_past=None, covariate_future=None):
+        qf = super().forecast(history, horizon, covariate_past, covariate_future)
+        qf.quantiles[3, 2] = np.nan
+        return qf
+
+
+@respx.mock
+async def test_non_finite_source_skipped_others_written(db_conn, settings):
+    _readings(db_conn)
+    respx.get(URL).respond(200, json=_nws_body())
+    before = _failures("model")
+    async with httpx.AsyncClient() as http:
+        res = await run_once(
+            NOW, conn=db_conn, http=http, model=NanOnCovariateModel(), settings=settings
+        )
+    assert _counts(db_conn) == {"nws": 24, "timestral": 24}
+    assert _failures("model") == before + 1
+    assert set(res.failed) == {"timestral_nws"}
+
+
+@respx.mock
+async def test_non_finite_all_models_still_writes_nws(db_conn, settings):
+    _readings(db_conn)
+    respx.get(URL).respond(200, json=_nws_body())
+    async with httpx.AsyncClient() as http:
+        res = await run_once(NOW, conn=db_conn, http=http, model=NanModel(), settings=settings)
+    assert _counts(db_conn) == {"nws": 24}
+    assert set(res.failed) == {"timestral", "timestral_nws"}

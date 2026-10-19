@@ -29,6 +29,10 @@ def _validate(f: SourceForecast) -> None:
         raise ValueError(f"{f.source}: expected {HORIZON} values, got {f.values.shape}")
     if f.quantiles is not None and f.quantiles.shape != (N_QUANTILES, HORIZON):
         raise ValueError(f"{f.source}: bad quantiles shape {f.quantiles.shape}")
+    if not np.isfinite(f.values).all():
+        raise ValueError(f"{f.source}: non-finite values")
+    if f.quantiles is not None and not np.isfinite(f.quantiles).all():
+        raise ValueError(f"{f.source}: non-finite quantiles")
 
 
 def write_run(conn, issued_at: datetime, forecasts: list[SourceForecast]) -> int:

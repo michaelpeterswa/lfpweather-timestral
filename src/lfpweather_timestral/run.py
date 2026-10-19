@@ -46,6 +46,11 @@ def _fail(result: RunResult, stage: str, sources: list[str], reason: str) -> Non
     log.error("run stage failed", extra={"stage": stage, "sources": sources, "reason": reason})
 
 
+def _require_finite(source: str, q) -> None:
+    if not (np.isfinite(q.median).all() and np.isfinite(q.quantiles).all()):
+        raise ValueError(f"{source}: non-finite model output")
+
+
 async def run_once(
     now: datetime,
     *,
@@ -87,6 +92,7 @@ async def run_once(
     if history is not None:
         try:
             q = model.forecast(history, HORIZON)
+            _require_finite("timestral", q)
             forecasts.append(
                 SourceForecast("timestral", q.median, q.quantiles, None, settings.model_id)
             )
@@ -101,6 +107,7 @@ async def run_once(
                 q = model.forecast(
                     history, HORIZON, covariate_past=past, covariate_future=nws_values
                 )
+                _require_finite("timestral_nws", q)
                 forecasts.append(
                     SourceForecast(
                         "timestral_nws", q.median, q.quantiles, coverage, settings.model_id
