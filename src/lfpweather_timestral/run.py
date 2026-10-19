@@ -70,7 +70,7 @@ async def run_once(
     history: np.ndarray | None = None
     try:
         history = load_history(conn, issued_at, settings.history_days)
-    except Exception as exc:  # DB error
+    except Exception as exc:  # noqa: BLE001 - DB error, partial run
         _fail(result, "history", ["timestral", "timestral_nws"], f"history: {exc!r}")
     if (
         history is not None
@@ -91,7 +91,7 @@ async def run_once(
             forecasts.append(
                 SourceForecast("timestral", q.median, q.quantiles, None, settings.model_id)
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - model failure must not abort run
             _fail(result, "model", ["timestral"], f"model: {exc!r}")
 
         if nws_values is not None:
@@ -108,7 +108,7 @@ async def run_once(
                         "timestral_nws", q.median, q.quantiles, coverage, settings.model_id
                     )
                 )
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - model failure must not abort run
                 _fail(result, "model", ["timestral_nws"], f"model: {exc!r}")
 
     if forecasts:

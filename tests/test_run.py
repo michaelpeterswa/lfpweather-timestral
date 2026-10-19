@@ -60,7 +60,7 @@ def _nws_body(issued=ISSUED):
             "temperature": 60 + h,
             "temperatureUnit": "F",
         }
-        for h in range(0, 30)
+        for h in range(30)
     ]
     return {"properties": {"periods": periods}}
 
