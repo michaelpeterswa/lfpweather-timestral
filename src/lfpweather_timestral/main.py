@@ -19,9 +19,19 @@ from lfpweather_timestral.run import run_once
 log = logging.getLogger("lfpweather_timestral")
 
 
+def connect(settings: Settings, *, statement_timeout_ms: int = 60_000) -> psycopg.Connection:
+    """Fresh autocommit connection with bounded connect and statement time."""
+    return psycopg.connect(
+        settings.database_url,
+        autocommit=True,
+        connect_timeout=10,
+        options=f"-c statement_timeout={statement_timeout_ms}",
+    )
+
+
 async def _scheduled(settings: Settings, model) -> None:
     # Fresh autocommit connection per run so a caught DB error cannot poison later work.
-    with psycopg.connect(settings.database_url, autocommit=True) as conn:
+    with connect(settings) as conn:
         async with httpx.AsyncClient(timeout=30) as http:
             result = await run_once(
                 datetime.now(UTC), conn=conn, http=http, model=model, settings=settings
