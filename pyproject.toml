@@ -10,6 +10,9 @@ dependencies = [
     "pydantic-settings",
     "prometheus-client",
     "psycopg[binary]>=3.3.6",
+    "fastapi>=0.149.0",
+    "uvicorn>=0.54.0",
+    "apscheduler<4",
 ]
 
 [dependency-groups]
