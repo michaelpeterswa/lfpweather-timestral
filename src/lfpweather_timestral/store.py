@@ -37,30 +37,29 @@ def write_run(conn, issued_at: datetime, forecasts: list[SourceForecast]) -> int
         _validate(f)
     issued_at = issued_at.astimezone(UTC)
     inserted = 0
-    with conn.transaction():
-        with conn.cursor() as cur:
-            for f in forecasts:
-                for k in range(HORIZON):
-                    lead = k + 1
-                    q = (
-                        [float(x) for x in f.quantiles[:, k]]
-                        if f.quantiles is not None
-                        else None
-                    )
-                    cur.execute(
-                        _INSERT,
-                        (
-                            issued_at,
-                            f.source,
-                            issued_at + timedelta(hours=lead),
-                            lead,
-                            float(f.values[k]),
-                            q,
-                            f.covariate_coverage,
-                            f.model,
-                        ),
-                    )
-                    inserted += cur.rowcount
+    with conn.transaction(), conn.cursor() as cur:
+        for f in forecasts:
+            for k in range(HORIZON):
+                lead = k + 1
+                q = (
+                    [float(x) for x in f.quantiles[:, k]]
+                    if f.quantiles is not None
+                    else None
+                )
+                cur.execute(
+                    _INSERT,
+                    (
+                        issued_at,
+                        f.source,
+                        issued_at + timedelta(hours=lead),
+                        lead,
+                        float(f.values[k]),
+                        q,
+                        f.covariate_coverage,
+                        f.model,
+                    ),
+                )
+                inserted += cur.rowcount
     return inserted
 
 
