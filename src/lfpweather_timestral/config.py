@@ -14,3 +14,4 @@ class Settings(BaseSettings):
     api_port: int = 8080
     metrics_port: int = 8081
     log_level: str = "info"
+    api_key: str | None = None

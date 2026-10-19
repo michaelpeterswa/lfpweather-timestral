@@ -88,7 +88,7 @@ def main() -> int:
         log.info("scheduler started (minute=35 UTC)")
     try:
         uvicorn.run(
-            create_api(model),
+            create_api(model, settings.api_key),
             host="0.0.0.0",
             port=settings.api_port,
             log_level="warning",

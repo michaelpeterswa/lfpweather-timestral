@@ -1,12 +1,13 @@
 """HTTP surfaces: the forecast API (8080) and the metrics/health app (8081)."""
 
+import hmac
 import threading
 from collections.abc import Callable
 
 import numpy as np
-from fastapi import FastAPI, Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class LockedModel:
@@ -24,8 +25,19 @@ class LockedModel:
 class ForecastRequest(BaseModel):
     history: list[float | None] = Field(min_length=24, max_length=32768)
     horizon: int = Field(ge=1, le=168)
-    covariate_past: list[float | None] | None = None
-    covariate_future: list[float] | None = None
+    covariate_past: list[float | None] | None = Field(default=None, max_length=32768)
+    covariate_future: list[float] | None = Field(default=None, max_length=168)
+
+    @model_validator(mode="after")
+    def _check_covariates(self):
+        if self.covariate_past is not None:
+            if self.covariate_future is None:
+                raise ValueError("covariate_past requires covariate_future")
+            if len(self.covariate_past) != len(self.history):
+                raise ValueError("covariate_past must have the same length as history")
+        if self.covariate_future is not None and len(self.covariate_future) != self.horizon:
+            raise ValueError("covariate_future must have length equal to horizon")
+        return self
 
 
 class ForecastResponse(BaseModel):
@@ -40,11 +52,17 @@ def _arr(values: list[float | None] | None) -> np.ndarray | None:
     return np.array([np.nan if v is None else v for v in values], dtype=np.float32)
 
 
-def create_api(model) -> FastAPI:
+def create_api(model, api_key: str | None = None) -> FastAPI:
     app = FastAPI(title="lfpweather-timestral")
 
+    def require_key(x_api_key: str | None = Header(default=None)) -> None:
+        if api_key is None:
+            return
+        if x_api_key is None or not hmac.compare_digest(x_api_key.encode(), api_key.encode()):
+            raise HTTPException(status_code=401, detail="invalid api key")
+
     # Sync endpoint: FastAPI runs it in a threadpool, off the event loop.
-    @app.post("/forecast", response_model=ForecastResponse)
+    @app.post("/forecast", response_model=ForecastResponse, dependencies=[Depends(require_key)])
     def forecast(req: ForecastRequest) -> ForecastResponse:
         fc = model.forecast(
             _arr(req.history),

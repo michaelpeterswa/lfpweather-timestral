@@ -8,3 +8,12 @@ def test_settings_defaults(monkeypatch):
     assert s.grid_point == "SEW/127,75"
     assert s.history_days == 30
     assert s.require_cuda is True
+
+
+def test_api_key_optional(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@h/db")
+    monkeypatch.setenv("NWS_USER_AGENT", "test (a@b.c)")
+    monkeypatch.delenv("API_KEY", raising=False)
+    assert Settings().api_key is None
+    monkeypatch.setenv("API_KEY", "k")
+    assert Settings().api_key == "k"

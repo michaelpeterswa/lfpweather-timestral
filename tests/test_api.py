@@ -54,3 +54,37 @@ def test_healthcheck_ok_after_load():
 def test_healthcheck_503_before_load():
     client = TestClient(create_metrics_app(lambda: False))
     assert client.get("/healthcheck").status_code == 503
+
+
+def _body(**kw):
+    b = {"history": [1.0] * 48, "horizon": 4}
+    b.update(kw)
+    return b
+
+
+def test_covariate_past_length_mismatch_422():
+    c = TestClient(create_api(FakeModel()))
+    r = c.post("/forecast", json=_body(covariate_past=[1.0] * 10, covariate_future=[1.0] * 4))
+    assert r.status_code == 422
+
+
+def test_covariate_future_length_mismatch_422():
+    c = TestClient(create_api(FakeModel()))
+    assert c.post("/forecast", json=_body(covariate_future=[1.0] * 3)).status_code == 422
+
+
+def test_covariate_past_without_future_422():
+    c = TestClient(create_api(FakeModel()))
+    assert c.post("/forecast", json=_body(covariate_past=[1.0] * 48)).status_code == 422
+
+
+def test_api_key_required_when_configured():
+    c = TestClient(create_api(FakeModel(), api_key="s3cret"))
+    assert c.post("/forecast", json=_body()).status_code == 401
+    assert c.post("/forecast", json=_body(), headers={"X-API-Key": "nope"}).status_code == 401
+    assert c.post("/forecast", json=_body(), headers={"X-API-Key": "s3cret"}).status_code == 200
+
+
+def test_api_open_when_key_unset():
+    c = TestClient(create_api(FakeModel()))
+    assert c.post("/forecast", json=_body()).status_code == 200

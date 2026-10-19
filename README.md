@@ -10,3 +10,7 @@ Forecasts a weather station's temperature hourly with Mistral's Timestral-209M a
 ## Development
 
 `uv sync && uv run pytest`
+
+## Configuration
+
+- `API_KEY` (optional): when set, `POST /forecast` (port 8080) requires an `X-API-Key` header equal to it and returns 401 otherwise. When unset the endpoint is open (development only). `/healthcheck` and `/metrics` on port 8081 are never authenticated.
