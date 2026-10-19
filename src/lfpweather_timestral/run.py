@@ -43,7 +43,13 @@ def _fail(result: RunResult, stage: str, sources: list[str], reason: str) -> Non
     metrics.RUN_FAILURES.labels(stage=stage).inc()
     for s in sources:
         result.failed[s] = reason
-    log.error("run stage failed", extra={"stage": stage, "sources": sources, "reason": reason})
+    log.error(
+        "run stage failed: stage=%s sources=%s reason=%s",
+        stage,
+        ",".join(sources),
+        reason,
+        extra={"stage": stage, "sources": sources, "reason": reason},
+    )
 
 
 def _require_finite(source: str, q) -> None:

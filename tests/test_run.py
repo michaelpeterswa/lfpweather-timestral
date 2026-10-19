@@ -220,3 +220,15 @@ async def test_non_finite_all_models_still_writes_nws(db_conn, settings):
         res = await run_once(NOW, conn=db_conn, http=http, model=NanModel(), settings=settings)
     assert _counts(db_conn) == {"nws": 24}
     assert set(res.failed) == {"timestral", "timestral_nws"}
+
+
+@respx.mock
+async def test_failure_log_message_names_stage_sources_reason(db_conn, settings, caplog):
+    _readings(db_conn)
+    respx.get(URL).respond(200, json=_nws_body())
+    model = FakeModel(RuntimeError("kaboom"))
+    with caplog.at_level("ERROR", logger="lfpweather_timestral.run"):
+        async with httpx.AsyncClient() as http:
+            await run_once(NOW, conn=db_conn, http=http, model=model, settings=settings)
+    msgs = [r.getMessage() for r in caplog.records if r.levelname == "ERROR"]
+    assert any("model" in m and "timestral_nws" in m and "kaboom" in m for m in msgs), msgs
