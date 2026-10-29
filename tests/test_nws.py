@@ -65,6 +65,30 @@ async def test_quantitative_value_celsius():
     assert out[first.astimezone(UTC)] == pytest.approx(50.0)
 
 
+@respx.mock
+async def test_null_temperature_periods_skipped():
+    # NWS leaves the far end of its 156h horizon null; the 24h we use is still valid
+    payload = _payload("nws_hourly_f.json")
+    periods = payload["properties"]["periods"]
+    periods[-1]["temperature"] = None
+    respx.get(URL).respond(200, json=payload)
+    out = await _fetch()
+    last = datetime.fromisoformat(periods[-1]["startTime"]).astimezone(UTC)
+    first = datetime.fromisoformat(periods[0]["startTime"]).astimezone(UTC)
+    assert last not in out
+    assert first in out
+
+
+@respx.mock
+async def test_all_null_temperatures_raise_nwserror():
+    payload = _payload("nws_hourly_f.json")
+    for period in payload["properties"]["periods"]:
+        period["temperature"] = None
+    respx.get(URL).respond(200, json=payload)
+    with pytest.raises(NwsError):
+        await _fetch()
+
+
 def _hourly(start, n, skip=()):
     return {start + timedelta(hours=i): 50.0 + i for i in range(n) if i not in skip}
 
