@@ -16,7 +16,7 @@ class NwsError(Exception):
     """Any failure fetching or interpreting the NWS hourly forecast."""
 
 
-def _to_fahrenheit(period: dict) -> float:
+def _to_fahrenheit(period: dict) -> float | None:
     temp = period["temperature"]
     if isinstance(temp, dict):
         value, unit = temp["value"], temp["unitCode"]
@@ -29,7 +29,7 @@ def _to_fahrenheit(period: dict) -> float:
         if not celsius and unit != "F":
             raise ValueError(f"unknown temperatureUnit {unit!r}")
     if value is None:
-        raise ValueError("null temperature")
+        return None
     value = float(value)
     return value * 9.0 / 5.0 + 32.0 if celsius else value
 
@@ -40,7 +40,11 @@ def _parse(body: dict) -> dict[datetime, float]:
         start = datetime.fromisoformat(period["startTime"])
         if start.tzinfo is None:
             raise ValueError("naive startTime")
-        out[start.astimezone(UTC)] = _to_fahrenheit(period)
+        temp = _to_fahrenheit(period)
+        if temp is None:
+            # NWS nulls the far tail of its horizon; nws_target checks the hours we need
+            continue
+        out[start.astimezone(UTC)] = temp
     if not out:
         raise ValueError("no periods")
     return out
